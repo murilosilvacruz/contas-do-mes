@@ -1,0 +1,1029 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Controle de Contas Mensais</title>
+    <style>
+        /* General styles for a clean and modern look */
+        :root {
+            --primary-color: #007AFF;
+            --primary-hover: #0056b3;
+            --danger-color: #dc3545;
+            --danger-hover: #c82333;
+            --success-color: #28a745;
+            --light-gray: #f8f9fa;
+            --medium-gray: #e9ecef;
+            --dark-gray: #6c757d;
+            --text-color: #333;
+            --background-color: #f5f5f5;
+            --white: #fff;
+            --shadow: 0 4px 12px rgba(0,0,0,0.1);
+            --border-radius: 12px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent; /* Disable tap highlight on mobile */
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        /* Header and Month Navigation */
+        .header {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: var(--white);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+        }
+
+        .month-nav {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .nav-btn {
+            background: var(--primary-color);
+            color: var(--white);
+            border: none;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 20px;
+            transition: all 0.2s ease;
+        }
+
+        .nav-btn:hover:not(:disabled) {
+            background: var(--primary-hover);
+            transform: scale(1.05);
+        }
+
+        .nav-btn:disabled {
+            background: var(--medium-gray);
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .month-display {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--text-color);
+            min-width: 200px;
+            text-align: center;
+        }
+
+        /* Main Content Area */
+        .main-content {
+            background: var(--white);
+            border-radius: var(--border-radius);
+            padding: 20px;
+            box-shadow: var(--shadow);
+            margin-bottom: 20px;
+            touch-action: pan-y; /* Allow vertical scroll, but we handle horizontal swipe */
+        }
+
+        /* Bills List Styling */
+        .bills-list {
+            margin-bottom: 20px;
+            min-height: 100px; /* Prevent layout shift when empty */
+        }
+
+        .bill-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            border: 1px solid var(--medium-gray);
+            border-radius: 8px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            user-select: none;
+        }
+
+        .bill-item:hover {
+            background: var(--light-gray);
+            transform: translateY(-2px);
+        }
+
+        .bill-item.paid {
+            background: #e8f5e8;
+            border-left: 5px solid var(--success-color);
+            opacity: 0.8;
+        }
+        
+        .bill-item.paid .bill-name, .bill-item.paid .bill-date {
+            text-decoration: line-through;
+        }
+
+        .bill-info {
+            flex: 1;
+        }
+
+        .bill-name {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .bill-date {
+            color: var(--dark-gray);
+            font-size: 14px;
+        }
+
+        .bill-amount {
+            font-weight: 600;
+            color: var(--primary-color);
+            font-size: 18px;
+        }
+
+        .bill-item.paid .bill-amount {
+            color: var(--success-color);
+        }
+
+        /* Total Section */
+        .total-section {
+            border-top: 2px solid var(--medium-gray);
+            padding-top: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .total-label {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .total-amount {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+
+        /* Action Buttons */
+        .actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            flex: 1;
+            text-align: center;
+        }
+
+        .btn-primary {
+            background: var(--primary-color);
+            color: var(--white);
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-hover);
+        }
+
+        .btn-secondary {
+            background: var(--dark-gray);
+            color: var(--white);
+        }
+
+        .btn-secondary:hover {
+            background: #545b62;
+        }
+        
+        .btn-danger {
+            background: var(--danger-color);
+            color: var(--white);
+        }
+        
+        .btn-danger:hover {
+            background: var(--danger-hover);
+        }
+
+        /* Modal for Managing Bills */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.6);
+            z-index: 1000;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: var(--white);
+            border-radius: var(--border-radius);
+            padding: 30px;
+            margin: 20px;
+            max-width: 500px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--medium-gray);
+        }
+
+        .modal-title {
+            font-size: 22px;
+            font-weight: 600;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 28px;
+            cursor: pointer;
+            color: var(--dark-gray);
+            line-height: 1;
+        }
+
+        /* Form Styling */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--text-color);
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.2s;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.2);
+        }
+        
+        .form-error {
+            color: var(--danger-color);
+            font-size: 14px;
+            margin-top: 5px;
+            display: none;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 30px;
+        }
+
+        .add-bill-section {
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--medium-gray);
+        }
+
+        #billForm {
+            display: none;
+            margin-top: 20px;
+        }
+
+        #billForm.show {
+            display: block;
+        }
+
+        /* List of bills in the management modal */
+        .manage-bills-list .bill-item {
+            cursor: default;
+            flex-direction: row;
+            align-items: center;
+        }
+        
+        .manage-bills-list .bill-item:hover {
+            transform: none;
+        }
+
+        .manage-bill-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 14px;
+            border-radius: 6px;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: var(--dark-gray);
+            border: 2px dashed var(--medium-gray);
+            border-radius: 8px;
+        }
+        
+        .empty-state p {
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+
+            .header {
+                padding: 15px;
+                margin-bottom: 20px;
+            }
+
+            .month-display {
+                font-size: 20px;
+                min-width: 140px;
+            }
+
+            .nav-btn {
+                width: 40px;
+                height: 40px;
+            }
+
+            .bill-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+
+            .bill-amount {
+                align-self: flex-end;
+                font-size: 20px;
+            }
+
+            .modal-content {
+                margin: 10px;
+                padding: 20px;
+            }
+
+            .form-actions {
+                flex-direction: column;
+            }
+            
+            .manage-bills-list .bill-item {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .manage-bill-actions {
+                align-self: flex-end;
+                margin-top: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header with month navigation -->
+        <header class="header">
+            <div class="month-nav">
+                <button class="nav-btn" id="prevMonth" aria-label="Mês anterior">‹</button>
+                <div class="month-display" id="monthDisplay"></div>
+                <button class="nav-btn" id="nextMonth" aria-label="Próximo mês">›</button>
+            </div>
+        </header>
+
+        <!-- Main content area for displaying bills -->
+        <main class="main-content" id="mainContent">
+            <div class="bills-list" id="billsList">
+                <!-- Bills will be dynamically populated here by JavaScript -->
+            </div>
+
+            <div class="total-section">
+                <div class="total-label">Total em Aberto:</div>
+                <div class="total-amount" id="totalAmount">R$ 0,00</div>
+            </div>
+
+            <div class="actions">
+                <button class="btn btn-primary" id="manageBillsBtn">Gerenciar Contas</button>
+                <button class="btn btn-secondary" id="upcomingBillsBtn">Próximas Contas</button>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal for adding, editing, and deleting bills -->
+    <div class="modal" id="manageBillsModal">
+        <div class="modal-content">
+            <header class="modal-header">
+                <h2 class="modal-title" id="modalTitle">Gerenciar Contas</h2>
+                <button class="close-btn" id="closeBillsModal" aria-label="Fechar modal">×</button>
+            </header>
+
+            <section class="add-bill-section">
+                <button class="btn btn-primary" id="addBillBtn">Adicionar Nova Conta</button>
+                
+                <form id="billForm" novalidate>
+                    <input type="hidden" id="billId">
+                    <div class="form-group">
+                        <label for="billName" class="form-label">Nome da Conta</label>
+                        <input type="text" class="form-control" id="billName" required maxlength="50">
+                        <div class="form-error" id="nameError"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="billDueDate" class="form-label">Dia do Vencimento</label>
+                        <input type="number" class="form-control" id="billDueDate" min="1" max="31" required>
+                         <div class="form-error" id="dueDateError"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="billAmount" class="form-label">Valor (R$)</label>
+                        <input type="text" class="form-control" id="billAmount" placeholder="0,00" required>
+                        <div class="form-error" id="amountError"></div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary" id="saveBillBtn">Salvar Conta</button>
+                        <button type="button" class="btn btn-secondary" id="cancelBillForm">Cancelar</button>
+                    </div>
+                </form>
+            </section>
+
+            <section class="manage-bills-list" id="manageBillsList">
+                <!-- Existing bills for management will be populated here -->
+            </section>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * BillsTracker App
+         * A client-side application to track monthly bills using localStorage.
+         * It implements all features from the requirements document, including
+         * CRUD operations, monthly recurrence, paid status tracking, and a
+         * responsive, mobile-first design with touch gestures.
+         */
+        class BillsTracker {
+            constructor() {
+                // --- STATE ---
+                this.data = this.loadData();
+                this.currentDate = new Date();
+                this.viewingDate = new Date(this.currentDate);
+                this.editingBillId = null;
+                this.isUpcomingView = false;
+
+                // --- GESTURE STATE ---
+                this.touchStartX = 0;
+                this.isSwiping = false;
+                
+                // --- DOM ELEMENTS ---
+                this.elements = {
+                    monthDisplay: document.getElementById('monthDisplay'),
+                    prevMonthBtn: document.getElementById('prevMonth'),
+                    nextMonthBtn: document.getElementById('nextMonth'),
+                    billsList: document.getElementById('billsList'),
+                    totalAmount: document.getElementById('totalAmount'),
+                    manageBillsBtn: document.getElementById('manageBillsBtn'),
+                    upcomingBillsBtn: document.getElementById('upcomingBillsBtn'),
+                    // Modal elements
+                    manageModal: document.getElementById('manageBillsModal'),
+                    closeModalBtn: document.getElementById('closeBillsModal'),
+                    modalTitle: document.getElementById('modalTitle'),
+                    addBillBtn: document.getElementById('addBillBtn'),
+                    billForm: document.getElementById('billForm'),
+                    billIdInput: document.getElementById('billId'),
+                    billNameInput: document.getElementById('billName'),
+                    billDueDateInput: document.getElementById('billDueDate'),
+                    billAmountInput: document.getElementById('billAmount'),
+                    saveBillBtn: document.getElementById('saveBillBtn'),
+                    cancelFormBtn: document.getElementById('cancelBillForm'),
+                    manageBillsList: document.getElementById('manageBillsList'),
+                    // Form errors
+                    nameError: document.getElementById('nameError'),
+                    dueDateError: document.getElementById('dueDateError'),
+                    amountError: document.getElementById('amountError'),
+                };
+                
+                this.initializeEventListeners();
+                this.render();
+            }
+
+            // --- DATA MANAGEMENT ---
+
+            /**
+             * Loads data from localStorage. If no data exists, it initializes
+             * with a default structure and adds sample data for first-time users.
+             */
+            loadData() {
+                const savedData = localStorage.getItem('billsTrackerData');
+                if (savedData) {
+                    return JSON.parse(savedData);
+                }
+                
+                // Default structure for first-time use
+                const defaultData = {
+                    bills: [
+                         { id: '1', name: 'Aluguel', dueDate: 5, amount: 150000 },
+                         { id: '2', name: 'Internet', dueDate: 10, amount: 9990 },
+                         { id: '3', name: 'Energia Elétrica', dueDate: 20, amount: 25000 }
+                    ],
+                    monthlyStatus: {}
+                };
+                this.saveData(defaultData);
+                return defaultData;
+            }
+
+            /**
+             * Saves the current state to localStorage.
+             * @param {object} data - The data object to save.
+             */
+            saveData(data = this.data) {
+                localStorage.setItem('billsTrackerData', JSON.stringify(data));
+            }
+
+            // --- EVENT LISTENERS ---
+
+            /**
+             * Sets up all event listeners for the application.
+             * Uses event delegation for dynamic lists.
+             */
+            initializeEventListeners() {
+                // Month navigation
+                this.elements.prevMonthBtn.addEventListener('click', () => this.navigateMonth(-1));
+                this.elements.nextMonthBtn.addEventListener('click', () => this.navigateMonth(1));
+
+                // Main action buttons
+                this.elements.manageBillsBtn.addEventListener('click', () => this.openManageModal());
+                this.elements.upcomingBillsBtn.addEventListener('click', () => this.toggleUpcomingView());
+
+                // Modal controls
+                this.elements.closeModalBtn.addEventListener('click', () => this.closeManageModal());
+                this.elements.addBillBtn.addEventListener('click', () => this.showBillForm());
+                this.elements.cancelFormBtn.addEventListener('click', () => this.hideBillForm());
+
+                // Form submission and input formatting
+                this.elements.billForm.addEventListener('submit', (e) => this.handleBillSubmit(e));
+                this.elements.billAmountInput.addEventListener('input', (e) => this.formatCurrencyInput(e.target));
+                
+                // Event delegation for dynamically created bill items
+                this.elements.billsList.addEventListener('click', (e) => {
+                    const billItem = e.target.closest('.bill-item');
+                    if (billItem && !this.isUpcomingView) {
+                        this.toggleBillStatus(billItem.dataset.billId);
+                    }
+                });
+                
+                this.elements.manageBillsList.addEventListener('click', (e) => {
+                    const target = e.target;
+                    const billId = target.closest('.bill-item')?.dataset.billId;
+                    if (!billId) return;
+
+                    if (target.matches('.edit-btn')) {
+                        this.editBill(billId);
+                    } else if (target.matches('.delete-btn')) {
+                        this.deleteBill(billId);
+                    }
+                });
+
+                // Swipe gestures for month navigation on mobile
+                const mainContent = document.getElementById('mainContent');
+                mainContent.addEventListener('touchstart', (e) => this.handleTouchStart(e), { passive: true });
+                mainContent.addEventListener('touchmove', (e) => this.handleTouchMove(e), { passive: false });
+                mainContent.addEventListener('touchend', (e) => this.handleTouchEnd(e));
+            }
+
+            // --- CORE LOGIC ---
+
+            /**
+             * Navigates to the previous or next month.
+             * @param {number} direction - -1 for previous, 1 for next.
+             */
+            navigateMonth(direction) {
+                this.viewingDate.setMonth(this.viewingDate.getMonth() + direction);
+                this.isUpcomingView = false; // Reset upcoming view on manual navigation
+                this.render();
+            }
+
+            /**
+             * Toggles the view between the current month and the next month's bills.
+             */
+            toggleUpcomingView() {
+                this.isUpcomingView = !this.isUpcomingView;
+                if (this.isUpcomingView) {
+                    this.viewingDate = new Date(this.currentDate);
+                    this.viewingDate.setMonth(this.viewingDate.getMonth() + 1);
+                } else {
+                    this.viewingDate = new Date(this.currentDate);
+                }
+                this.render();
+            }
+
+            /**
+             * Toggles the paid status of a bill for the currently viewed month.
+             * @param {string} billId - The ID of the bill to toggle.
+             */
+            toggleBillStatus(billId) {
+                const monthKey = this.getMonthKey(this.viewingDate);
+                const statusKey = `${billId}-${monthKey}`;
+                this.data.monthlyStatus[statusKey] = !this.data.monthlyStatus[statusKey];
+                this.saveData();
+                this.render();
+            }
+
+            /**
+             * Handles the submission of the add/edit bill form.
+             * Validates input and then creates or updates a bill.
+             * @param {Event} e - The form submission event.
+             */
+            handleBillSubmit(e) {
+                e.preventDefault();
+                if (!this.validateForm()) return;
+
+                const billData = {
+                    id: this.editingBillId || Date.now().toString(),
+                    name: this.elements.billNameInput.value.trim(),
+                    dueDate: parseInt(this.elements.billDueDateInput.value),
+                    amount: this.parseCurrency(this.elements.billAmountInput.value)
+                };
+
+                if (this.editingBillId) {
+                    // Update existing bill
+                    const index = this.data.bills.findIndex(b => b.id === this.editingBillId);
+                    if (index !== -1) {
+                        this.data.bills[index] = billData;
+                    }
+                } else {
+                    // Add new bill
+                    this.data.bills.push(billData);
+                }
+
+                this.saveData();
+                this.render(); // Update main view
+                this.renderManageBillsList(); // Update modal list
+                this.hideBillForm();
+            }
+            
+            /**
+             * Populates the form to edit an existing bill.
+             * @param {string} billId - The ID of the bill to edit.
+             */
+            editBill(billId) {
+                const bill = this.data.bills.find(b => b.id === billId);
+                if (!bill) return;
+
+                this.editingBillId = billId;
+                this.elements.billIdInput.value = bill.id;
+                this.elements.billNameInput.value = bill.name;
+                this.elements.billDueDateInput.value = bill.dueDate;
+                this.elements.billAmountInput.value = this.formatCurrency(bill.amount);
+                
+                this.showBillForm('Editar Conta', 'Atualizar Conta');
+            }
+
+            /**
+             * Deletes a bill. The browser's confirm() dialog has been removed
+             * to prevent issues in sandboxed environments. Deletion is now immediate.
+             * Also removes all associated monthly status data.
+             * @param {string} billId - The ID of the bill to delete.
+             */
+            deleteBill(billId) {
+                this.data.bills = this.data.bills.filter(b => b.id !== billId);
+                
+                // Clean up related monthly statuses
+                Object.keys(this.data.monthlyStatus).forEach(key => {
+                    if (key.startsWith(billId + '-')) {
+                        delete this.data.monthlyStatus[key];
+                    }
+                });
+                
+                this.saveData();
+                this.render();
+                this.renderManageBillsList();
+            }
+
+            // --- MODAL & FORM MANAGEMENT ---
+
+            openManageModal() {
+                this.elements.manageModal.classList.add('show');
+                this.renderManageBillsList();
+            }
+
+            closeManageModal() {
+                this.elements.manageModal.classList.remove('show');
+                this.hideBillForm();
+            }
+
+            showBillForm(title = 'Adicionar Nova Conta', buttonText = 'Salvar Conta') {
+                this.elements.modalTitle.textContent = title;
+                this.elements.saveBillBtn.textContent = buttonText;
+                this.elements.billForm.classList.add('show');
+                this.elements.addBillBtn.style.display = 'none';
+                this.elements.billNameInput.focus();
+            }
+
+            hideBillForm() {
+                this.editingBillId = null;
+                this.elements.billForm.reset();
+                this.elements.billForm.classList.remove('show');
+                this.elements.addBillBtn.style.display = 'block';
+                this.elements.modalTitle.textContent = 'Gerenciar Contas';
+                this.clearFormErrors();
+            }
+            
+            validateForm() {
+                this.clearFormErrors();
+                let isValid = true;
+                
+                const name = this.elements.billNameInput.value.trim();
+                const dueDate = parseInt(this.elements.billDueDateInput.value);
+                const amount = this.parseCurrency(this.elements.billAmountInput.value);
+
+                if (!name) {
+                    this.elements.nameError.textContent = 'O nome da conta é obrigatório.';
+                    this.elements.nameError.style.display = 'block';
+                    isValid = false;
+                }
+
+                if (isNaN(dueDate) || dueDate < 1 || dueDate > 31) {
+                    this.elements.dueDateError.textContent = 'O dia do vencimento deve ser entre 1 e 31.';
+                    this.elements.dueDateError.style.display = 'block';
+                    isValid = false;
+                }
+
+                if (isNaN(amount) || amount <= 0) {
+                    this.elements.amountError.textContent = 'O valor deve ser um número positivo.';
+                    this.elements.amountError.style.display = 'block';
+                    isValid = false;
+                }
+
+                return isValid;
+            }
+
+            clearFormErrors() {
+                this.elements.nameError.style.display = 'none';
+                this.elements.dueDateError.style.display = 'none';
+                this.elements.amountError.style.display = 'none';
+            }
+
+            // --- RENDERING ---
+
+            /**
+             * The main render function. It updates all dynamic parts of the UI.
+             */
+            render() {
+                this.renderHeader();
+                this.renderBillsList();
+                this.updateTotal();
+            }
+
+            /**
+             * Renders the header, including the month display and button states.
+             */
+            renderHeader() {
+                const monthName = this.viewingDate.toLocaleString('pt-BR', { month: 'long' });
+                const year = this.viewingDate.getFullYear();
+                this.elements.monthDisplay.textContent = `${monthName.charAt(0).toUpperCase() + monthName.slice(1)} ${year}`;
+                
+                if (this.isUpcomingView) {
+                    this.elements.upcomingBillsBtn.textContent = 'Contas Atuais';
+                    this.elements.upcomingBillsBtn.classList.remove('btn-secondary');
+                    this.elements.upcomingBillsBtn.classList.add('btn-primary');
+                } else {
+                    this.elements.upcomingBillsBtn.textContent = 'Próximas Contas';
+                    this.elements.upcomingBillsBtn.classList.add('btn-secondary');
+                    this.elements.upcomingBillsBtn.classList.remove('btn-primary');
+                }
+            }
+
+            /**
+             * Renders the list of bills for the currently viewed month.
+             */
+            renderBillsList() {
+                const monthlyBills = this.getMonthlyBills();
+                
+                if (monthlyBills.length === 0) {
+                    this.elements.billsList.innerHTML = `
+                        <div class="empty-state">
+                            <p>Nenhuma conta para este mês.</p>
+                            <button class="btn btn-primary" onclick="app.openManageModal()">Adicionar Contas</button>
+                        </div>`;
+                    return;
+                }
+                
+                this.elements.billsList.innerHTML = monthlyBills.map(bill => {
+                    const dueDate = new Date(this.viewingDate.getFullYear(), this.viewingDate.getMonth(), bill.dueDate);
+                    const isPaidClass = bill.isPaid ? 'paid' : '';
+                    
+                    return `
+                        <div class="bill-item ${isPaidClass}" data-bill-id="${bill.id}">
+                            <div class="bill-info">
+                                <div class="bill-name">${bill.name}</div>
+                                <div class="bill-date">Vence em: ${dueDate.toLocaleDateString('pt-BR')}</div>
+                            </div>
+                            <div class="bill-amount">${this.formatCurrency(bill.amount)}</div>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            /**
+             * Renders the list of all bills in the management modal.
+             */
+            renderManageBillsList() {
+                if (this.data.bills.length === 0) {
+                    this.elements.manageBillsList.innerHTML = `<div class="empty-state"><p>Nenhuma conta cadastrada.</p></div>`;
+                    return;
+                }
+                
+                const sortedBills = [...this.data.bills].sort((a,b) => a.name.localeCompare(b.name));
+
+                this.elements.manageBillsList.innerHTML = sortedBills.map(bill => `
+                    <div class="bill-item" data-bill-id="${bill.id}">
+                        <div class="bill-info">
+                            <div class="bill-name">${bill.name}</div>
+                            <div class="bill-date">Dia do Vencimento: ${bill.dueDate}</div>
+                            <div class="bill-amount">${this.formatCurrency(bill.amount)}</div>
+                        </div>
+                        <div class="manage-bill-actions">
+                            <button class="btn btn-small btn-secondary edit-btn">Editar</button>
+                            <button class="btn btn-small btn-danger delete-btn">Excluir</button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            /**
+             * Calculates and updates the total amount of unpaid bills.
+             */
+            updateTotal() {
+                const totalDue = this.getMonthlyBills()
+                    .filter(bill => !bill.isPaid)
+                    .reduce((sum, bill) => sum + bill.amount, 0);
+                
+                this.elements.totalAmount.textContent = this.formatCurrency(totalDue);
+            }
+
+            // --- HELPERS ---
+
+            /**
+             * Gets all bills for the currently viewed month, with their payment status.
+             * @returns {Array} An array of bill objects for the current month, sorted correctly.
+             */
+            getMonthlyBills() {
+                const monthKey = this.getMonthKey(this.viewingDate);
+                const monthlyBills = this.data.bills.map(bill => {
+                    const statusKey = `${bill.id}-${monthKey}`;
+                    return { ...bill, isPaid: !!this.data.monthlyStatus[statusKey] };
+                });
+
+                // Sort: unpaid first, then by due date, then by name
+                monthlyBills.sort((a, b) => {
+                    if (a.isPaid !== b.isPaid) return a.isPaid - b.isPaid;
+                    if (a.dueDate !== b.dueDate) return a.dueDate - b.dueDate;
+                    return a.name.localeCompare(b.name);
+                });
+
+                return monthlyBills;
+            }
+
+            /**
+             * Creates a unique key for a month.
+             * @param {Date} date - The date to create a key for.
+             * @returns {string} A key in the format 'YYYY-M'.
+             */
+            getMonthKey(date) {
+                return `${date.getFullYear()}-${date.getMonth()}`;
+            }
+
+            /**
+             * Formats a number (in cents) into a BRL currency string.
+             * @param {number} amountInCents - The amount in cents.
+             * @returns {string} The formatted currency string (e.g., "R$ 1.234,56").
+             */
+            formatCurrency(amountInCents) {
+                const amount = (amountInCents / 100).toFixed(2);
+                const parts = amount.split('.');
+                parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+                return `R$ ${parts.join(',')}`;
+            }
+            
+            /**
+             * Formats the currency input field value in real-time.
+             * @param {HTMLInputElement} input - The input element.
+             */
+            formatCurrencyInput(input) {
+                let value = input.value.replace(/\D/g, '');
+                if (value === '') {
+                    input.value = '';
+                    return;
+                }
+                value = (parseInt(value, 10) / 100).toFixed(2);
+                value = value.replace('.', ',');
+                input.value = value;
+            }
+
+            /**
+             * Parses a BRL currency string into a number (in cents).
+             * @param {string} value - The currency string to parse.
+             * @returns {number} The amount in cents.
+             */
+            parseCurrency(value) {
+                const numberString = value.replace(/[R$\s.]/g, '').replace(',', '.');
+                return Math.round(parseFloat(numberString) * 100);
+            }
+            
+            // --- TOUCH GESTURES ---
+            
+            handleTouchStart(e) {
+                this.touchStartX = e.touches[0].clientX;
+                this.isSwiping = true;
+            }
+
+            handleTouchMove(e) {
+                if (!this.isSwiping) return;
+                const currentX = e.touches[0].clientX;
+                const deltaX = currentX - this.touchStartX;
+                // Prevent vertical scroll while swiping horizontally
+                if (Math.abs(deltaX) > 10) {
+                    e.preventDefault();
+                }
+            }
+
+            handleTouchEnd(e) {
+                if (!this.isSwiping) return;
+                const touchEndX = e.changedTouches[0].clientX;
+                const deltaX = touchEndX - this.touchStartX;
+                const swipeThreshold = 50; // Minimum distance for a swipe
+
+                if (Math.abs(deltaX) > swipeThreshold) {
+                    if (deltaX > 0) {
+                        this.navigateMonth(-1); // Swipe right -> previous month
+                    } else {
+                        this.navigateMonth(1); // Swipe left -> next month
+                    }
+                }
+                this.isSwiping = false;
+            }
+        }
+
+        // Initialize the application once the DOM is fully loaded.
+        document.addEventListener('DOMContentLoaded', () => {
+            window.app = new BillsTracker();
+        });
+    </script>
+</body>
+</html>
